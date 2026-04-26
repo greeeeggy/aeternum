@@ -20,6 +20,8 @@ import 'screens/root_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/tracker/symptom_sync_service.dart';
+import 'services/version_service.dart';
+import 'screens/update_required_screen.dart';
 
 // AUDIO SERVICE IMPORTS
 import 'package:audio_service/audio_service.dart';
@@ -126,7 +128,88 @@ void main() async {
     debugPrint('🌐 Web platform - Audio Service skipped');
   }
 
-  runApp(const AeternumApp());
+  runApp(const InitialConfigGate(child: AeternumApp()));
+}
+
+class InitialConfigGate extends StatefulWidget {
+  final Widget child;
+  const InitialConfigGate({super.key, required this.child});
+
+  @override
+  State<InitialConfigGate> createState() => _InitialConfigGateState();
+}
+
+class _InitialConfigGateState extends State<InitialConfigGate> {
+  bool _isChecking = true;
+  VersionInfo? _updateInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _performStartupCheck();
+  }
+
+  Future<void> _performStartupCheck() async {
+    try {
+      final versionService = VersionService();
+      final info = await versionService.checkForUpdates();
+      
+      if (mounted) {
+        setState(() {
+          if (info != null && info.isUpdateAvailable) {
+            _updateInfo = info;
+          }
+          _isChecking = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Startup check failed: $e');
+      if (mounted) {
+        setState(() => _isChecking = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If still checking, show a minimal themed loading state
+    if (_isChecking) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFFFBF8F8),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Colors.pink),
+                const SizedBox(height: 24),
+                Text(
+                  'Aeternum is checking for updates...',
+                  style: TextStyle(color: Colors.pink.shade300, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // If an update is required, block the app with the update screen
+    if (_updateInfo != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: UpdateRequiredScreen(
+          version: _updateInfo!.latestVersion,
+          releaseNotes: _updateInfo!.releaseNotes,
+          downloadUrl: _updateInfo!.downloadUrl,
+        ),
+      );
+    }
+
+    // Otherwise, proceed to the main app
+    return widget.child;
+  }
 }
 
 class AeternumApp extends StatelessWidget {

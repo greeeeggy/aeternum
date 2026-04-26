@@ -70,6 +70,8 @@ dependencies:
   device_calendar: ^4.3.3
   onesignal_flutter: ^5.2.6
   flutter_dotenv: ^5.2.1
+  ota_update: ^7.1.0
+  package_info_plus: ^8.1.1
 
   # ── Aeternum Agent — Phase 1 dependencies ──────────────────────────────────
   flutter_tts: ^4.2.0
