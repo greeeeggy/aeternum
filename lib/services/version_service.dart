@@ -26,7 +26,7 @@ class VersionService {
   Future<VersionInfo?> checkForUpdates() async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = packageInfo.version;
+      final currentVersion = "${packageInfo.version}+${packageInfo.buildNumber}";
       debugPrint('[VersionService] Checking for updates. Current version: $currentVersion');
 
       final response = await http
@@ -73,14 +73,23 @@ class VersionService {
 
   bool _isVersionGreater(String latest, String current) {
     try {
-      List<int> latestParts = latest.split('.').map(int.parse).toList();
-      List<int> currentParts = current.split('.').map(int.parse).toList();
+      // Normalize versions by replacing '+' with '.' to handle build numbers
+      List<int> latestParts =
+          latest.replaceAll('+', '.').split('.').map(int.parse).toList();
+      List<int> currentParts =
+          current.replaceAll('+', '.').split('.').map(int.parse).toList();
 
-      for (int i = 0; i < latestParts.length && i < currentParts.length; i++) {
-        if (latestParts[i] > currentParts[i]) return true;
-        if (latestParts[i] < currentParts[i]) return false;
+      int length = latestParts.length > currentParts.length
+          ? latestParts.length
+          : currentParts.length;
+
+      for (int i = 0; i < length; i++) {
+        int l = i < latestParts.length ? latestParts[i] : 0;
+        int c = i < currentParts.length ? currentParts[i] : 0;
+        if (l > c) return true;
+        if (l < c) return false;
       }
-      return latestParts.length > currentParts.length;
+      return false;
     } catch (e) {
       return latest != current;
     }

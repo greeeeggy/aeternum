@@ -24,14 +24,21 @@ android {
     defaultConfig {
         applicationId = "com.greggy.aeternum_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
-        versionCode = 6
-        versionName = "2.0.2"
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Aeternum.apk"
         }
     }
 
