@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "865066732248",
+    "project_id": "aeternum-4ca15",
+    "storage_bucket": "aeternum-4ca15.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865066732248:android:15836d475120e323f5a5ad",
+        "android_client_info": {
+          "package_name": "com.greggy.aeternum_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "865066732248-f6ckjgbcuj9ertftt8te2fdnc5pslo7i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.greggy.aeternum_app",
+            "certificate_hash": "2e513e88083a3eb3d4ca89f531f95cff5986017a"
+          }
+        },
+        {
+          "client_id": "865066732248-1acdotsbapf4ilav2s5d3sc68fe54g36.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDp5NyVZ5I6dF7wQNVR9DivCJ_QxDmJwYM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "865066732248-1acdotsbapf4ilav2s5d3sc68fe54g36.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "865066732248-bdkkjvlt0ied00qm5vjeklnpva1fgpe5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.aeternumApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
