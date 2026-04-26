@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -17,23 +18,30 @@ class VersionInfo {
 }
 
 class VersionService {
-  final String _apiUrl = 'https://api.github.com/repos/greeeeggy/aeternum/releases/latest';
+  static const String _owner = 'greeeeggy';
+  static const String _repo = 'aeternum';
+  static const String _apiUrl =
+      'https://api.github.com/repos/$_owner/$_repo/releases/latest';
 
   Future<VersionInfo?> checkForUpdates() async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
-      
+      debugPrint('[VersionService] Checking for updates. Current version: $currentVersion');
+
       final response = await http
           .get(Uri.parse(_apiUrl))
           .timeout(const Duration(seconds: 10));
-      
+      debugPrint('[VersionService] GitHub API Response: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final String latestVersion = data['tag_name'].toString().replaceAll('v', '');
-        
+        final String latestVersion =
+            data['tag_name'].toString().replaceAll('v', '');
+        debugPrint('[VersionService] Latest version found on GitHub: $latestVersion');
+
         final String releaseNotes = data['body'] ?? '';
-        
+
         // Find the first APK asset
         String? downloadUrl;
         final assets = data['assets'] as List;
@@ -48,6 +56,7 @@ class VersionService {
         downloadUrl ??= data['html_url'];
 
         final isAvailable = _isVersionGreater(latestVersion, currentVersion);
+        debugPrint('[VersionService] Update available: $isAvailable');
 
         return VersionInfo(
           latestVersion: latestVersion,
@@ -57,7 +66,7 @@ class VersionService {
         );
       }
     } catch (e) {
-      print('[VersionService] Error: $e');
+      debugPrint('[VersionService] Error checking for updates: $e');
     }
     return null;
   }
@@ -67,12 +76,11 @@ class VersionService {
       List<int> latestParts = latest.split('.').map(int.parse).toList();
       List<int> currentParts = current.split('.').map(int.parse).toList();
 
-      for (int i = 0; i < latestParts.length; i++) {
-        if (i >= currentParts.length) return true;
+      for (int i = 0; i < latestParts.length && i < currentParts.length; i++) {
         if (latestParts[i] > currentParts[i]) return true;
         if (latestParts[i] < currentParts[i]) return false;
       }
-      return false;
+      return latestParts.length > currentParts.length;
     } catch (e) {
       return latest != current;
     }

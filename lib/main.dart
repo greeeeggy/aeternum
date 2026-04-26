@@ -195,7 +195,7 @@ class _InitialConfigGateState extends State<InitialConfigGate> {
       );
     }
 
-    // If an update is required, block the app with the update screen
+    // If an update is available, show the update screen with skip option
     if (_updateInfo != null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -203,6 +203,11 @@ class _InitialConfigGateState extends State<InitialConfigGate> {
           version: _updateInfo!.latestVersion,
           releaseNotes: _updateInfo!.releaseNotes,
           downloadUrl: _updateInfo!.downloadUrl,
+          onSkip: () {
+            setState(() {
+              _updateInfo = null;
+            });
+          },
         ),
       );
     }
