@@ -76,15 +76,26 @@ class SymptomSyncService {
         await _pullFromFirebaseOnce();
         await _markInitialSyncComplete();
       } else {
+        // AUTO-HEALING: If it's not a "new device" but local is empty, 
+        // it means a previous sync was interrupted or the flag was set incorrectly.
+        final logs = await _localDb.getAllLogs(limit: 1);
+        if (logs.isEmpty) {
+          print('🔄 Auto-healing: Local logs empty but not a new device. Checking Firebase...');
+          await _pullFromFirebaseOnce();
+        }
         print('📱 Existing device – waiting for changes to sync (delta sync active)');
         await _markInitialSyncComplete();
       }
     } else {
       print('📴 Offline or not logged in – will sync when possible');
-      await _markInitialSyncComplete();
+      // If we have local data, we're "initialized" enough for this session.
+      final logs = await _localDb.getAllLogs(limit: 1);
+      if (logs.isNotEmpty) {
+        _hasInitialized = true;
+      } else {
+        print('⚠️ New device AND offline — sync deferred until online');
+      }
     }
-
-    _hasInitialized = true;
   }
 
   /// Call this every time a log is saved or modified locally

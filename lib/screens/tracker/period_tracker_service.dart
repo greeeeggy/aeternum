@@ -66,9 +66,13 @@ class PeriodTrackerService {
 
       if (isNewDevice) {
         print('🆕 New device detected — pulling data from Firebase');
-        await syncFirebaseToLocal(initialSetup: true);
-        await _markInitialSyncComplete();
-        print('✅ New device setup complete');
+        bool success = await syncFirebaseToLocal(initialSetup: true);
+        if (success) {
+          await _markInitialSyncComplete();
+          print('✅ New device setup complete');
+        } else {
+          print('❌ New device setup FAILED (download error) — will retry next time');
+        }
       } else {
         print('📱 Existing device — pushing local data to Firebase');
         await syncLocalToFirebase();
@@ -77,10 +81,16 @@ class PeriodTrackerService {
       }
     } else {
       print('📴 Offline — using local data only');
-      await _markInitialSyncComplete(); // Still mark as done – we'll sync when online later
+      final localDates = await _localDb.getPastPeriodDates();
+      if (localDates.isNotEmpty) {
+        // If we have local data, we're "initialized" enough to work offline,
+        // but we don't mark _kHasSyncedBefore yet because we still want to
+        // run the online sync branch (either pull or push) when next online.
+        _hasInitialized = true; 
+      } else {
+        print('⚠️ New device AND offline — sync deferred until online');
+      }
     }
-
-    _hasInitialized = true;
   }
 
   /// Called whenever the user modifies period dates locally
@@ -197,12 +207,22 @@ class PeriodTrackerService {
 
       final batch = FirebaseFirestore.instance.batch();
 
-      // Delete any doc whose ID is not in the desired set
-      // (this removes both old random-UUID orphans AND deleted periods)
-      for (final doc in snapshot.docs) {
-        if (!desired.containsKey(doc.id)) {
-          batch.delete(doc.reference);
-          print('🗑️ Deleted stale/orphan doc: ${doc.id}');
+      // ── Delete Stale Docs ──────────────────────────────────────────────────
+      // Safety Guard & Auto-Healing: If local is empty but Firebase has data,
+      // it means the user likely lost local data (reinstall/cache clear) 
+      // but the initial sync pull was skipped or failed. 
+      // Instead of wiping Firestore, we PULL the data to heal the local DB.
+      if (desired.isEmpty && snapshot.docs.isNotEmpty) {
+        print('⚠️ Safety Trigger: Local DB is empty but Firebase has docs. Wiping BLOCKED.');
+        print('🔄 Auto-healing: Pulling data from Firebase to restore local state...');
+        await syncFirebaseToLocal(initialSetup: true);
+        return; // Stop here; the next sync or local change will handle uploads
+      } else {
+        for (final doc in snapshot.docs) {
+          if (!desired.containsKey(doc.id)) {
+            batch.delete(doc.reference);
+            print('🗑️ Deleted stale/orphan doc: ${doc.id}');
+          }
         }
       }
 
@@ -225,12 +245,12 @@ class PeriodTrackerService {
   }
 
   /// Pull from Firebase → local ONLY during initial setup on new devices
-  Future<void> syncFirebaseToLocal({required bool initialSetup}) async {
-    if (_userId == null) return;
+  Future<bool> syncFirebaseToLocal({required bool initialSetup}) async {
+    if (_userId == null) return false;
 
     if (!initialSetup) {
       print('⚠️ syncFirebaseToLocal called outside initial setup — ignored');
-      return;
+      return false;
     }
 
     try {
@@ -271,8 +291,10 @@ class PeriodTrackerService {
       } else {
         print('✅ Firebase was empty — nothing to import');
       }
+      return true;
     } catch (e) {
       print('🔥 Initial download failed: $e');
+      return false;
     }
   }
 
